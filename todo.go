@@ -46,7 +46,7 @@ func SortByPriority(t TodoList) tasks {
 	return t.sortByPriority()
 }
 
-func GetAllCommands(t TodoList, isVerbose bool) []string {
+func GetAllCommands(t *TodoList, isVerbose bool) []string {
 	c := getInterfaceMethods(t)
 	c = append(c, "quit")
 	if isVerbose {
@@ -61,11 +61,12 @@ func GetAllCommands(t TodoList, isVerbose bool) []string {
 
 func Start() {
 	myTasks := tasks{}
+	var myList TodoList
 	pendingTasks := myTasks.getPendingTasks()
 	fmt.Println("Hi there, Welcome to Go to Do List")
 	fmt.Printf("you have %v tasks pending\n", len(pendingTasks))
 	fmt.Printf("You can type 'add' to add a new task\n or 'commands' to lst all available commands \n")
-	commands := GetAllCommands(myTasks, false)
+	commands := GetAllCommands(&myList, false)
 
 	//read user input
 	for {
@@ -80,7 +81,7 @@ func Start() {
 		if userInput == "quit" {
 			break
 		}
-		methodInfo := mapMethodToFunction(myTasks)
+		methodInfo := mapMethodToFunction(&myList)
 
 		method, ok := methodInfo[userInput]
 
