@@ -1,6 +1,7 @@
 package todo
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 )
@@ -9,16 +10,29 @@ func List(t TodoList) {
 	t.list()
 }
 
-func Add(t TodoList, myTasks tasks) {
+func Add(t TodoList) {
 	var task string
 	var priority int
+
+	// Create a scanner to read the full line for task
+	scanner := bufio.NewScanner(os.Stdin)
+
 	fmt.Println("Enter your task")
-	fmt.Scanln(&task)
+	if scanner.Scan() {
+		task = scanner.Text()
+	}
+
 	fmt.Println("Enter your priority")
-	fmt.Scanln(&priority)
+	_, err := fmt.Scanf("%d\n", &priority)
+	if err != nil {
+		fmt.Println("Please enter a valid number for priority")
+		return
+	}
+
 	t.add(task, priority)
-	pendingTasks := myTasks.getPendingTasks()
+	pendingTasks := t.getPendingTasks()
 	fmt.Printf("you have %v tasks pending\n", len(pendingTasks))
+	List(t)
 }
 
 func Complete(t TodoList) {
@@ -29,6 +43,7 @@ func Complete(t TodoList) {
 	fmt.Println("Successfully completed")
 	pendingTasks := t.getPendingTasks()
 	fmt.Printf("Now you have %v tasks pending\n", len(pendingTasks))
+	List(t)
 }
 
 func Delete(t TodoList) {
@@ -42,69 +57,61 @@ func Delete(t TodoList) {
 
 }
 
-func SortByPriority(t TodoList) tasks {
-	return t.sortByPriority()
+func SortByPriority(t TodoList) {
+	t.sortByPriority()
 }
 
-func GetAllCommands(t *TodoList, isVerbose bool) []string {
-	c := getInterfaceMethods(t)
-	c = append(c, "quit")
-	if isVerbose {
-		for _, command := range c {
-			fmt.Println(command)
-		}
-		return []string{}
+func createCommandMap(t TodoList) map[string]func() {
+	commands := map[string]func(){
+		"list": func() {
+			List(t)
+		},
+		"add": func() {
+			Add(t)
+		},
+		"complete": func() {
+			Complete(t)
+		},
+		"delete": func() {
+			Delete(t)
+		},
+		"sort": func() {
+			SortByPriority(t)
+		},
+		"quit": func() {
+			fmt.Println("Bye..")
+			os.Exit(0)
+		},
 	}
 
-	return c
+	return commands
 }
 
 func Start() {
-	myTasks := tasks{}
-	var myList TodoList
+	var myTasks tasks
+	var todoList TodoList = &myTasks
 	pendingTasks := myTasks.getPendingTasks()
 	fmt.Println("Hi there, Welcome to Go to Do List")
 	fmt.Printf("you have %v tasks pending\n", len(pendingTasks))
-	fmt.Printf("You can type 'add' to add a new task\n or 'commands' to lst all available commands \n")
-	commands := GetAllCommands(&myList, false)
 
 	//read user input
 	for {
-
+		fmt.Printf("You can type 'add' to add a new task or 'help' to lst all available commands \n")
 		var userInput string
 		fmt.Scanln(&userInput)
-		if !isValidCommand(userInput, commands) {
-			fmt.Println("Invalid command")
+		commandMap := createCommandMap(todoList)
+		if userInput == "help" {
+			for key := range commandMap {
+				fmt.Println(key)
+			}
 			continue
 		}
-
-		if userInput == "quit" {
-			break
-		}
-		methodInfo := mapMethodToFunction(&myList)
-
-		method, ok := methodInfo[userInput]
-
-		if !ok {
-			fmt.Println("Invalid command")
+		fn, exists := commandMap[userInput]
+		if !exists {
+			fmt.Println("Sorry invalid command")
 			continue
 		}
-		args := []interface{}{}
-		args = append(args, myTasks)
-		_, err := callMethod(myTasks, method.Name, args...)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
+		fn()
 	}
 
-}
-func isValidCommand(command string, commands []string) bool {
-	for _, c := range commands {
-		if c == command {
-			return true
-		}
-	}
-	return false
 }

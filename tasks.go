@@ -2,7 +2,9 @@ package todo
 
 import (
 	"fmt"
+	"os"
 	"slices"
+	"text/tabwriter"
 )
 
 type task struct {
@@ -18,24 +20,38 @@ type TodoList interface {
 	delete(int)
 	complete(int)
 	getPendingTasks() tasks
-	sortByPriority() tasks
+	sortByPriority()
 }
 
-func (t tasks) add(toDo string, priority int) {
+func (t *tasks) add(toDo string, priority int) {
 	newTask := task{
-		id:          len(t) + 1,
+		id:          len(*t) + 1,
 		description: toDo,
 		complete:    false,
 		priority:    priority,
 	}
-	t = append(t, newTask)
+	*t = append(*t, newTask)
 }
 
 func (t tasks) list() {
+	// Initialize tabwriter
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+
+	// Print header
+	fmt.Fprintln(w, "ID\tDescription\tComplete\tPriority\t")
+	fmt.Fprintln(w, "----\t-----------\t--------\t--------\t")
+
+	// Print tasks
 	for _, task := range t {
-		fmt.Println("Id\t Description\t Complete\t Priority")
-		fmt.Printf("%v\t %v\t %v\t %v\n", task.id, task.description, task.complete, task.priority)
+		fmt.Fprintf(w, "%d\t%s\t%v\t%d\t\n",
+			task.id,
+			task.description,
+			task.complete,
+			task.priority)
 	}
+
+	// Flush the writer to display the output
+	w.Flush()
 }
 
 func (t tasks) delete(id int) {
@@ -67,7 +83,7 @@ func (t tasks) getPendingTasks() tasks {
 	return pendingTasks
 }
 
-func (t tasks) sortByPriority() tasks {
+func (t tasks) sortByPriority() {
 	var sortedTasks tasks
 	copy(sortedTasks, t)
 	slices.SortFunc(sortedTasks, func(i, j task) int {
@@ -80,5 +96,5 @@ func (t tasks) sortByPriority() tasks {
 		return 0
 	})
 
-	return sortedTasks
+	sortedTasks.list()
 }
